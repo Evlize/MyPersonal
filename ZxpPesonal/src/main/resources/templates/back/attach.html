@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:with="title='文件管理',active='attach'">
+<header th:replace="back/header::headerFragment(${title},${active})"></header>
+<link href="//cdn.bootcss.com/dropzone/4.3.0/min/dropzone.min.css" rel="stylesheet"/>
+<head>
+    <meta th:name="_csrf" th:content="${_csrf.token}"/>
+    <meta th:name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<style>
+    #dropzone {
+        margin-bottom: 3rem;
+    }
+
+    .dropzone {
+        border: 2px dashed #0087F7;
+        border-radius: 5px;
+        background: white;
+    }
+
+    .dropzone .dz-message {
+        font-weight: 400;
+    }
+
+    .dropzone .dz-message .note {
+        font-size: 0.8em;
+        font-weight: 200;
+        display: block;
+        margin-top: 1.4rem;
+    }
+
+    .attach-img {
+        width: 100px;
+        height: 100px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 8px #333;
+    }
+
+    .attach-text {
+        font-size: 12px;
+        font-weight: 300;
+    }
+
+    .attach-img:hover {
+        background-color: #f9f9f9;
+    }
+</style>
+<body class="fixed-left">
+<div id="wrapper">
+    <div th:replace="back/header::header-body"></div>
+    <div class="content-page">
+        <div class="content">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h4 class="page-title">文件管理</h4>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 portlets">
+                            <!-- Your awesome content goes here -->
+                            <div class="m-b-30">
+                                <form action="#" class="dropzone" id="dropzone" th:action="@{/admin/attach/upload}" method="post">
+                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+                                    <div class="fallback">
+                                        <input name="file" type="file" multiple="multiple"/>
+                                    </div>
+                                    <div class="dz-message">
+                                        点击上传
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-12 attach">
+                        <th:block th:if="${commons.is_empty(attachs)}">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <div class="alert alert-warning">
+                                        目前还没有一个附件呢，你可以上传试试!
+                                    </div>
+                                </div>
+                            </div>
+                        </th:block>
+                        <th:block th:unless="${commons.is_empty(attachs)}">
+                            <th:block th:each="attach : ${attachs.list}">
+                                <div class="col-md-2 text-center m-t-10">
+                                    <div class="attach-icon">
+                                        <a th:if="${attach.ftype == 'image'}" th:href="${commons.site_url(attach.fkey)}" target="_blank">
+                                            <img class="attach-img"
+                                                 th:src="@{${attach.ftype == 'image'}?${attach.fkey}: '/back/images/attach.png'}"
+                                                 th:title="${attach.fname}"/>
+                                        </a>
+                                        <a th:unless="${attach.ftype == 'image'}" th:href="${commons.site_url('/admin/attach/download?fkey=' + attach.fkey)}" target="_blank">
+                                            <img class="attach-img"
+                                                 th:src="@{${attach.ftype == 'image'}?${attach.fkey}: '/back/images/attach.png'}"
+                                                 th:title="${attach.fname}"/>
+                                        </a>
+                                    </div>
+                                    <div class="clearfix m-t-10">
+
+
+                <span class="attach-text" data-toggle="tooltip" data-placement="top"
+                      th:attr="data-original-title=${attach.fname}"
+                      th:text="${commons.substr(attach.fname, 12)}"></span>
+                                    </div>
+
+                                        <button type="button"
+                                                class="btn btn-danger btn-sm waves-effect waves-light m-t-5"
+                                                th:onclick="'delAttach('+${attach.id}+');'">
+                                            <i class="fa fa-trash-o"></i> <span>删除</span>
+                                        </button>
+                                    </div>
+
+                            </th:block>
+                            <div th:replace="comm/macros :: pageAdminNav(${attachs})"></div>
+                        </th:block>
+                    </div>
+                </div>
+                <div th:replace="back/footer :: footer-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="back/footer :: footer"></div>
+<script src="//cdn.bootcss.com/dropzone/4.3.0/min/dropzone.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.6.0/clipboard.min.js"></script>
+<script type="text/javascript" th:inline="javascript">
+    /*<![CDATA[*/
+    var token = $("meta[name='_csrf']").attr("content");
+    var header = $("meta[name='_csrf_header']").attr("content");//让CSRF令牌通过
+    var tale = new $.tale();
+
+
+    $("#dropzone").dropzone({
+        url: "/admin/attach/upload",
+        paramName: "file",
+        maxFilesize: 1, // MB
+        headers: {
+            [header]: token
+        },
+        init: function () {
+            this.on("sending", function (file, xhr, formData) {
+                formData.append("_csrf", token);
+            });
+            this.on("success", function (file, response) {
+                if (response.success) {
+                    tale.alertOkAndReload("上传文件成功");
+                } else {
+                    tale.alertError(response.msg || "上传文件失败");
+                }
+            });
+            this.on("error", function (file, errorMessage) {
+                console.error(errorMessage);
+                tale.alertError("上传文件出错");
+            });
+        }
+    });
+
+    function delAttach(id) {
+        var token = $("meta[name='_csrf']").attr("content");
+        var header = $("meta[name='_csrf_header']").attr("content");
+        $.ajax({
+            type: 'POST',
+            url: '/admin/attach/delete',
+            data: { id: id },
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader(header, token);
+            },
+            success: function(result) {
+                if (result && result.success) {
+                    tale.alertOkAndReload('附件删除成功');
+                } else {
+                    tale.alertError(result.msg || '附件删除失败');
+                }
+            },
+            error: function(xhr, status, error) {
+                tale.alertError('删除请求失败');
+            }
+        });
+
+    }
+
+    /*]]>*/
+</script>
+</body>
+</html>

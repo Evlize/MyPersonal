@@ -1,0 +1,3 @@
+404：xml映射文件与mapper层没同名同包，并且mapper接口没加@Mapper
+403：mysql新版本jdbc:mysql://localhost:3306/blog_system?serverTimezone=UTC后面要加serverTimezone=UTC才行
+500:   pom.xml文件版本不匹配
